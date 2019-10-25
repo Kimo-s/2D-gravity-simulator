@@ -1,13 +1,25 @@
 import pygame, sys
 import math, time
+from gui import Application
+import tkinter as tk
+import threading
 
 idb = 0
 pygame.init()
 
-G = 6.673*(10**-9)
-size = height, width = 1000,1000
+G = 6.673*(10**-11)
+size = width, height = 1000,1000
 
 screen = pygame.display.set_mode(size)
+
+def start_gui():
+    root = tk.Tk()
+    app = Application(master=root)
+    app.mainloop()
+
+# This will be a thread for a window to control to masses and other stuff
+# gui = threading.Thread(target=start_gui)
+# gui.start()
 
 def add_vec(vec1,vec2):
     x = vec1[0]*math.cos(vec1[1]) + vec2[0]*math.cos(vec2[1])
@@ -46,15 +58,23 @@ class Ball:
                     balls.remove(i)
         for i in balls:
             if i.idb != self.idb:
-                force = G*((self.mass*i.mass)/math.hypot(self.x-i.x,self.y-i.y)**2)
-                x = self.x - i.x
-                y = self.y - i.y
-                theta = math.atan2(y,x) - (1/2)*math.pi
-                self.force, self.angle = add_vec((self.force,self.angle),(force,theta))
+                if (self.x - i.x)**2 + (self.y - i.y)**2 > (self.raduis + i.raduis)**2:
+                    force = G*((self.mass*i.mass)/math.hypot(self.x-i.x,self.y-i.y)**2)
+                    x = self.x - i.x
+                    y = self.y - i.y
+                    theta = math.atan2(y,x) - (1/2)*math.pi
+                    self.force, self.angle = add_vec((self.force,self.angle),(force,theta))
+                else:
+                    self.mass = i.mass + self.mass
+                    print(self.mass)
+                    self.raduis += 1
+                    for q in balls:
+                        if q.idb == i.idb:
+                            balls.remove(q)      
         self.x += (math.sin(self.angle) * self.force)/(0.001*self.mass)
         self.y -= (math.cos(self.angle) * self.force)/(0.001*self.mass)
 
-earth = Ball(10**7, height/2, width/2, 0, 0, 50, idb)
+earth = Ball(10**9, height/2, width/2, 0, 0, 50, idb)
 earth.color = (60,17,201)
 balls = [earth]
 
@@ -62,7 +82,8 @@ last_pressed = time.time()
 mouse_pressed = 0
 while 1:
     for event in pygame.event.get():
-        if event.type == pygame.QUIT: sys.exit()
+        if event.type == pygame.QUIT:
+            sys.exit()
 
     if time.time()-last_pressed > 0.2:
         if mouse_pressed == 0 and pygame.mouse.get_pressed()[0] == 1:
@@ -78,7 +99,7 @@ while 1:
             y = mouse_pos1[1]-mouse_pos2[1]
             speed = 0.03*math.hypot(x,y)
             angle = math.atan2(y,x) + (1/2)*math.pi
-            balls.append(Ball(10**4,mouse_pos1[0],mouse_pos1[1],speed,angle,10,idb))
+            balls.append(Ball(2*10**4,mouse_pos1[0],mouse_pos1[1],speed,angle,10,idb))
 
     screen.fill((0, 0, 0))
     if mouse_pressed == 1:
